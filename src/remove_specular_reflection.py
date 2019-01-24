@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 import math
+from scipy import optimize
 
 
 def convert_color(bgr_vector):
@@ -18,23 +19,38 @@ def convert_color(bgr_vector):
     return np.array([hue, saturation, intensity])
 
 
+def extract_min_intensity_pixels():
+    return
+
+
+
 def plot_specular(hsi, hue):
     hue_channel = hsi[:, :, 0]
+    # ここで1次元配列になる
     same_hue_pixels = hsi[hue_channel == hue]
+    saturation_array = same_hue_pixels[:, 1]
+    intensity_array = same_hue_pixels[:, 2]
     print(same_hue_pixels)
+
+    def func1(param, x, y):
+        residual = y - (param[0] * x + param[1])
+        return residual
+
+    param = [0, 0]
+    print(optimize.leastsq(func1, param, args=(saturation_array, intensity_array)))
 
 
 def remove_specular_reflection(src):
     hsi_image = np.apply_along_axis(convert_color, 2, cv2.cvtColor(src, cv2.COLOR_BGR2RGB))
-    print(hsi_image[:, :, 0])
-    plot_specular(hsi_image, 0)
+    # print(hsi_image[:, :, 0])
+    plot_specular(hsi_image, hsi_image[250][250][0])
     return
 
 
 g = np.zeros((16, 12, 3), dtype=np.uint8)
-g[0:1, 0:1, 1] = 255
-src = cv2.imread("test.jpg")
-remove_specular_reflection(g)
+g[:, :, 1] = 255
+src = cv2.imread("pokeball.jpg")
+remove_specular_reflection(src)
 cv2.imshow("", g)
 
 cv2.waitKey(0)
