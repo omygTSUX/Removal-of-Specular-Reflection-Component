@@ -30,6 +30,16 @@ def convert_color_reverse(hsi_vector):
     i_vector = np.array([0, 0, 0])
     i_vector[0] = math.sqrt((saturation ** 2) / (1 + math.tan(hue) ** 2))
     i_vector[1] = math.sqrt((saturation ** 2) * (math.tan(hue) ** 2) / (1 + math.tan(hue) ** 2))
+    if 0 <= hue < math.pi/2:
+        pass
+    elif math.pi/2 <= hue < math.pi:
+        i_vector[0] *= -1
+    elif -math.pi/2 <= hue < 0:
+        i_vector[1] *= -1
+    elif -math.pi <= hue < -math.pi/2:
+        i_vector[0] *= -1
+        i_vector[1] *= -1
+
     i_vector[2] = intensity
     bgr_vector = np.dot(reverse_matrix, i_vector).astype(np.uint8)
     # print(bgr_vector)
@@ -80,12 +90,13 @@ def plot_specular(hsi, hue):
 
 def remove_specular_reflection(src):
     hsi_image = np.apply_along_axis(convert_color, 2, cv2.cvtColor(src, cv2.COLOR_BGR2RGB))
+
     hue_coefficient_list = [0 for _ in range(361)]
     # print(hsi_image[:, :, 0])
     for i in range(-180, 181):
         coefficient = plot_specular(hsi_image, i)
         hue_coefficient_list[i+180] = coefficient
-    # print(hue_coefficient_list)
+    print(hue_coefficient_list)
     for y in range(hsi_image.shape[0]):
         for x in range(hsi_image.shape[1]):
            # print(hsi_image[y][x])
@@ -95,10 +106,7 @@ def remove_specular_reflection(src):
     return cv2.cvtColor(rgb_image, cv2.COLOR_RGB2BGR)
 
 
-g = np.zeros((16, 12, 3), dtype=np.uint8)
-g[:, :6, 1] = 128
-g[:6, :, 2] = 200
-src = cv2.imread("pokeball.jpg")
+src = cv2.imread("orange.png")
 dst = remove_specular_reflection(src)
 cv2.imshow("", dst)
 
