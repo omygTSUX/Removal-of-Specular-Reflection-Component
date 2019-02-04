@@ -12,10 +12,10 @@ def convert_color(bgr_vector):
 
     i_vector = np.dot(convert_matrix, bgr_vector)
     # print("i="+str(i_vector))
-    hue = int(math.degrees(math.atan2(i_vector[1], i_vector[0])))
+    hue = math.ceil(math.degrees(math.atan2(i_vector[1], i_vector[0])))
     saturation = math.hypot(i_vector[0], i_vector[1])
     intensity = i_vector[2]
-
+    # print(hue, saturation, intensity)
     return np.array([hue, saturation, intensity])
 
 
@@ -26,7 +26,7 @@ def convert_color_reverse(hsi_vector):
     reverse_matrix = np.linalg.inv(convert_matrix)
     hue, saturation, intensity = hsi_vector
     hue = math.radians(hue)
-   #  print(hue, saturation, intensity)
+    # print(hue, saturation, intensity)
     i_vector = np.array([0, 0, 0])
     i_vector[0] = math.sqrt((saturation ** 2) / (1 + math.tan(hue) ** 2))
     i_vector[1] = math.sqrt((saturation ** 2) * (math.tan(hue) ** 2) / (1 + math.tan(hue) ** 2))
@@ -41,7 +41,13 @@ def convert_color_reverse(hsi_vector):
         i_vector[1] *= -1
 
     i_vector[2] = intensity
-    bgr_vector = np.dot(reverse_matrix, i_vector).astype(np.uint8)
+
+    bgr_vector = np.minimum(np.dot(reverse_matrix, i_vector), np.array([255, 255, 255])).astype(np.uint8)
+    # print(bgr_vector)
+    '''bgr_vector = np.array([0, 0, 0], np.uint8)
+    bgr_vector[0] = 2/3*i_vector[0] + i_vector[2]
+    bgr_vector[1] = -1/3*i_vector[0] + 1/math.sqrt(3)*i_vector[1] + i_vector[2]
+    bgr_vector[2] = -1 / 3 * i_vector[0] - 1 / math.sqrt(3) * i_vector[1] + i_vector[2]'''
     # print(bgr_vector)
     return bgr_vector
 
@@ -74,9 +80,10 @@ def func1(param, x, y):
 def plot_specular(hsi, hue):
     hue_channel = hsi[:, :, 0]
     # ここで1次元配列になる
-    same_hue_pixels = hsi[hue_channel == hue]
+    same_hue_pixels = hsi[(hue-15 <= hue_channel) & (hue_channel <= hue+15)]
     if len(same_hue_pixels) > 0:
         min_intensity_extracted = extract_min_intensity_pixels(same_hue_pixels[:, 1:3])
+        # print(min_intensity_extracted)
         # saturation_array = same_hue_pixels[:, 1]
         # intensity_array = same_hue_pixels[:, 2]
         # print(same_hue_pixels)
@@ -100,14 +107,15 @@ def remove_specular_reflection(src):
     for y in range(hsi_image.shape[0]):
         for x in range(hsi_image.shape[1]):
            # print(hsi_image[y][x])
-            if hue_coefficient_list[int(hsi_image[y][x][0])+180] > 0:
-                hsi_image[y][x][2] = hue_coefficient_list[int(hsi_image[y][x][0])+180] * hsi_image[y][x][1]
+            if hue_coefficient_list[math.ceil(hsi_image[y][x][0])+180] > 0:
+                hsi_image[y][x][2] = hue_coefficient_list[math.ceil(hsi_image[y][x][0])+180] * hsi_image[y][x][1]
     rgb_image = np.apply_along_axis(convert_color_reverse, 2, hsi_image)
     return cv2.cvtColor(rgb_image, cv2.COLOR_RGB2BGR)
 
 
-src = cv2.imread("orange.png")
+
+src = cv2.imread("monster.jpg")
 dst = remove_specular_reflection(src)
 cv2.imshow("", dst)
-
+cv2.imwrite("result.png", dst)
 cv2.waitKey(0)
